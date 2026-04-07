@@ -1,25 +1,32 @@
 import React, { useState, useEffect } from "react";
 import GetLocation from "./GetLocation";
-import { getCityWeatherURL } from "../config";
+import Forecast from "./Forecast";
+import { getCityWeatherURL, getForecastURL } from "../config";
 import { API_KEY as api_key } from "../config";
 
 const WeatherApp = () => {
   const [city, setCity] = useState("");
   const [weather, setWeather] = useState(null);
+  const [forecast, setForecast] = useState(null);
 
   const fetchWeather = async () => {
     if (!city) return;
 
     try {
-      const res = await fetch(getCityWeatherURL(city));
-      const data = await res.json();
+      const res1 = await fetch(getCityWeatherURL(city));
+      const data1 = await res1.json();
 
-      if (data.error) {
+      if (data1.error) {
         alert("City not found!");
         return;
       }
 
-      setWeather(data);
+      setWeather(data1);
+
+      const res2 = await fetch(getForecastURL(city));
+      const data2 = await res2.json();
+      setForecast(data2.forecast);
+
     } catch (err) {
       console.log(err);
     }
@@ -28,20 +35,22 @@ const WeatherApp = () => {
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const { latitude, longitude } = pos.coords;
+      const query = `${latitude},${longitude}`;
 
-      const res = await fetch(
-        `https://api.weatherapi.com/v1/current.json?key=${api_key}&q=${latitude},${longitude}`
-      );
+      const res1 = await fetch(getCityWeatherURL(query));
+      const data1 = await res1.json();
+      setWeather(data1);
 
-      const data = await res.json();
-      setWeather(data);
+      const res2 = await fetch(getForecastURL(query));
+      const data2 = await res2.json();
+      setForecast(data2.forecast);
     });
   }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-r from-blue-400 to-indigo-500">
 
-      <div className="bg-white/20 backdrop-blur-lg p-8 rounded-2xl shadow-xl text-center w-80">
+      <div className="bg-white/20 backdrop-blur-lg p-8 rounded-2xl shadow-xl text-center w-100">
 
         <h2 className="text-2xl font-bold text-white mb-4">
           🌦 Weather App
@@ -66,9 +75,9 @@ const WeatherApp = () => {
         <GetLocation setWeather={setWeather} />
 
         {weather && (
-          <div className="mt-6 text-white">
-            <h3 className="text-xl font-semibold">
-              {weather.location.name}, {weather.location.country}
+          <div className="mt-4 text-white">
+            <h3 className="text-lg font-semibold">
+              {weather.location.name}
             </h3>
 
             <img
@@ -77,18 +86,15 @@ const WeatherApp = () => {
               className="mx-auto"
             />
 
-            <p className="text-3xl font-bold">
+            <p className="text-2xl font-bold">
               {weather.current.temp_c}°C
             </p>
 
             <p>{weather.current.condition.text}</p>
-
-            <div className="flex justify-between mt-4 text-sm">
-              <span>💧 {weather.current.humidity}%</span>
-              <span>💨 {weather.current.wind_kph} kph</span>
-            </div>
           </div>
         )}
+
+        {forecast && <Forecast forecast={forecast} />}
 
       </div>
     </div>
